@@ -1,0 +1,12 @@
+'use strict';
+const favKey='weather_favorite_places', defaultKey='weather_default_place';
+let pendingTown=null;
+function readFavorites(){try{let f=JSON.parse(localStorage.getItem(favKey)||'[]');return Array.isArray(f)?f.filter(x=>x&&cities.includes(x.city)&&typeof x.town==='string'&&x.town.length<50):[]}catch{return []}}
+function readDefault(){try{let d=JSON.parse(localStorage.getItem(defaultKey)||'null');return d&&cities.includes(d.city)&&typeof d.town==='string'?d:null}catch{return null}}
+function renderPlaces(){let favorites=readFavorites(),d=readDefault(),list=$('placeList');list.innerHTML='';for(let p of favorites){let b=document.createElement('button');b.className='place-chip';b.textContent=p.city+' '+p.town;b.title='查看逐時預報';b.onclick=()=>{choose(p.city);pendingTown=p;openDetail('hourly')};list.appendChild(b)}$('placeNote').textContent=favorites.length?'':'尚無收藏；開啟逐時預報並選擇鄉鎮後即可加入。';$('defaultLabel').textContent=d?'預設地點：'+d.city+' '+d.town:''}
+function selectedPlace(){let selected=detailData[Number($('townSelect').value)];return {city:current,town:field(selected,'LocationName','locationName')||''}}
+function restoreTownSelection(city){let d=pendingTown?.city===city?pendingTown:readDefault()?.city===city?readDefault():null;pendingTown=null;if(!d)return;let index=detailData.findIndex(x=>field(x,'LocationName','locationName')===d.town);if(index>=0)$('townSelect').value=String(index)}
+function renderPlaceActions(){let p=selectedPlace(),f=readFavorites(),has=f.some(x=>x.city===p.city&&x.town===p.town),d=readDefault(),isDefault=d?.city===p.city&&d?.town===p.town;$('placeActions').innerHTML=`<div class="place-actions"><button class="btn" id="favToggle">${has?'★ 移除我的最愛':'☆ 加入我的最愛'}</button><button class="btn" id="setDefault">${isDefault?'清除預設地點':'設為預設地點'}</button></div><div class="place-status">${isDefault?'目前為預設地點；下次開啟時優先選擇。':'收藏與預設地點儲存於此瀏覽器。'}</div>`;$('favToggle').onclick=()=>{let updated=has?f.filter(x=>!(x.city===p.city&&x.town===p.town)):[...f,p];localStorage.setItem(favKey,JSON.stringify(updated));renderPlaces();renderPlaceActions()};$('setDefault').onclick=()=>{if(isDefault)localStorage.removeItem(defaultKey);else localStorage.setItem(defaultKey,JSON.stringify(p));renderPlaces();renderPlaceActions()}}
+let defaultPlace=readDefault();if(defaultPlace){choose(defaultPlace.city);pendingTown=defaultPlace}renderPlaces();
+
+document.addEventListener('click',e=>{document.querySelectorAll('.utility[open]').forEach(menu=>{if(!menu.contains(e.target))menu.open=false})});
